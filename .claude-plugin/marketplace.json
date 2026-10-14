@@ -1,6 +1,6 @@
 {
   "name": "oscura",
-  "description": "Un mod per Claude Code che oscura i tuoi prompt in chat e mostra solo l'output.",
+  "description": "A Claude Code mod that hides your prompts in the chat and shows only the output.",
   "owner": {
     "name": "lucatozziGZ"
   },
@@ -8,7 +8,7 @@
     {
       "name": "oscura",
       "source": "./",
-      "description": "Accendi /oscura: i tuoi prompt in chat diventano ▓▓▓, Claude legge il testo vero."
+      "description": "Turn on /oscura: your prompts show up as ▓▓▓ in the chat, while Claude reads the real text."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "oscura",
-  "version": "0.2.0",
-  "description": "Accendi /oscura: i tuoi prompt in chat diventano ▓▓▓, Claude legge il testo vero.",
+  "version": "0.3.0",
+  "description": "Turn on /oscura: your prompts show up as ▓▓▓ in the chat, while Claude reads the real text.",
   "author": {
     "name": "lucatozziGZ"
   },

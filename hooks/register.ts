@@ -4,12 +4,16 @@ import type { PromptOrigin, Register } from 'claude-code'
 // Acceso e spento con /oscura: vale per tutta la sessione.
 const attivo = atom({ plugin: 'oscura', key: 'attivo' } as const, false)
 
-// I testi originali già oscurati: l'app desktop disegna la bolla dal testo digitato,
-// non da quello riscritto, quindi la bolla va oscurata anche al momento del disegno.
-const nascosti = atom({ plugin: 'oscura', key: 'nascosti' } as const, [] as string[])
+// Numero del prompt oscurato → testo originale, per rimetterlo a schermo quando si spegne.
+const originali = atom({ plugin: 'oscura', key: 'originali' } as const, {} as Record<string, string>)
+const contatore = atom({ plugin: 'oscura', key: 'contatore' } as const, 0)
 
-// Quello che compare in chat al posto del prompt.
+// Quello che compare in chat al posto del prompt. Il numero lega ogni maschera al suo
+// originale ovunque finisca la riga (anche un prompt messo in coda mentre Claude lavora).
 export const MASCHERA = '▓▓▓▓▓▓▓▓ prompt oscurato ▓▓▓▓▓▓▓▓'
+export const maschera = (n?: number) => (n === undefined ? MASCHERA : `▓▓▓▓▓▓▓▓ prompt oscurato #${n} ▓▓▓▓▓▓▓▓`)
+const GIA_OSCURATO = /^▓▓▓▓▓▓▓▓ prompt oscurato/
+const NUMERATA = /▓▓▓▓▓▓▓▓ prompt oscurato #(\d+) ▓▓▓▓▓▓▓▓/g
 
 // Messaggi che non ha scritto la persona: non si toccano neanche a oscura acceso.
 const AUTOMATICI: ReadonlySet<PromptOrigin['kind'] | undefined> = new Set([
@@ -44,14 +48,14 @@ const stato = (acceso: boolean) => (acceso ? '🕶️ oscura' : undefined)
 // "/Users/me/app.ts perché crasha?" invece è un prompt normale e va oscurato.
 const COMANDO = /^\/[A-Za-z0-9_][A-Za-z0-9:_-]*(?=\s|$)/
 
-// I comandi, i messaggi automatici e quelli di altri plugin restano visibili.
+// Già oscurati, comandi, messaggi automatici e quelli di altri plugin: da lasciare come sono.
 const daLasciare = (text: string, origin?: PromptOrigin) =>
-  text === MASCHERA ||
+  GIA_OSCURATO.test(text) ||
   COMANDO.test(text) ||
   AUTOMATICI.has(origin?.kind) ||
   (origin?.kind === 'plugin' && !origin.asUser)
 
-const oscurata = <E extends { props: { text: string } }>(e: E): E => ({ ...e, props: { ...e.props, text: MASCHERA } })
+const conTesto = <E extends { props: { text: string } }>(e: E, text: string): E => ({ ...e, props: { ...e.props, text } })
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -72,7 +76,7 @@ export const register: Register = on => {
     return {
       text: acceso
         ? '🕶️ Oscura acceso: da ora i tuoi prompt in chat diventano ▓▓▓. Rilancia /oscura per spegnerlo.'
-        : '👓 Oscura spento: i prompt tornano visibili.',
+        : '👓 Oscura spento: tutti i prompt tornano visibili, anche quelli oscurati prima.',
     }
   })
 
@@ -81,9 +85,16 @@ export const register: Register = on => {
       return next(e)
     }
 
-    await update($, nascosti, lista => (lista.includes(e.text) ? lista : [...lista, e.text]))
+    const n = await update($, contatore, c => c + 1)
+    await update($, originali, righe => ({ ...righe, [n]: e.text }))
+    const entrato = await next({ ...e, text: maschera(n), context: [...(e.context ?? []), istruzioni(e.text)] })
 
-    return next({ ...e, text: MASCHERA, context: [...(e.context ?? []), istruzioni(e.text)] })
+    // Scartato da qualcun altro: non c'è nessuna riga da rimettere in chiaro.
+    if (entrato.drop !== undefined) {
+      await update($, originali, ({ [n]: _scartato, ...resto }) => resto)
+    }
+
+    return entrato
   }).catch(($, e, next) =>
     // Meglio non inviare che mostrare il prompt per sbaglio.
     next.called ? next(e) : { drop: 'oscura ha avuto un problema e non ha inviato il prompt, così non è finito in chiaro. Riprova.' },
@@ -91,16 +102,26 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
     const { text, origin } = e.props
+    const righe = await read($, originali)
 
-    if (daLasciare(text, origin)) {
-      return next(e)
+    // Acceso: tutto oscurato, anche i messaggi scritti prima di accenderlo.
+    // L'app desktop disegna la bolla dal testo digitato: se è un prompt oscurato, prende il suo numero.
+    if (await read($, attivo)) {
+      if (daLasciare(text, origin)) {
+        return next(e)
+      }
+
+      const n = Object.keys(righe).find(chiave => righe[chiave] === text)
+
+      return next(conTesto(e, maschera(n === undefined ? undefined : Number(n))))
     }
 
-    const daNascondere = (await read($, attivo)) || (await read($, nascosti)).includes(text)
+    // Spento: tutto visibile. Ogni maschera numerata torna al suo testo originale.
+    const svelato = text.replace(NUMERATA, (intera: string, n: string) => righe[n] ?? intera)
 
-    return next(daNascondere ? oscurata(e) : e)
+    return next(svelato === text ? e : conTesto(e, svelato))
   }).catch(($, e, next) =>
     // Anche qui meglio oscurare per sbaglio che mostrare: niente chiamate a $ in questo ramo.
-    next.called ? next(e) : next(daLasciare(e.props.text, e.props.origin) ? e : oscurata(e)),
+    next.called ? next(e) : next(daLasciare(e.props.text, e.props.origin) ? e : conTesto(e, MASCHERA)),
   )
 }

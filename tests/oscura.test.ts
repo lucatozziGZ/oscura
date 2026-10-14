@@ -2,18 +2,21 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import type { On, PromptOrigin, PromptSubmitInput, RenderElement } from 'claude-code'
 
-import { MASCHERA } from '../hooks/register'
+import { MASCHERA, maschera } from '../hooks/register'
 
 const PERSONA: PromptOrigin = { kind: 'composer' }
 
 // Sta al posto del motore: registra cosa arriva in fondo alla catena di prompt.submit
-// e disegna la bolla con il testo che le arriva.
-const inFondo = (on: On) => {
+// (scartando i testi in `scarta`) e disegna la bolla con il testo che le arriva.
+const inFondo = (on: On, scarta: string[] = []) => {
   const arrivati: PromptSubmitInput[] = []
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('ui.status', () => ({ value: undefined }))
   on('prompt.submit', ($, e) => {
+    if (e.context?.some(c => scarta.some(testo => c.includes(`<prompt_oscurato>\n${testo}\n`)))) {
+      return { drop: 'scartato dal test' }
+    }
     arrivati.push(e)
 
     return { text: e.text, context: e.context }
@@ -34,15 +37,15 @@ const invia = ($: Engine, text: string, origin: PromptOrigin = PERSONA) => $.pro
 const oscura = ($: Engine) =>
   $.command.run({ command: 'oscura', args: '', origin: PERSONA, presentation: { isFullscreen: false, columns: 80 } })
 
-const bolla = async ($: Engine, surface: 'terminal' | 'desktop', text: string) => {
-  const ui = await $.ui.mount({
-    plugin: 'oscura',
-    surface,
-    component: 'UserMessage',
-    props: { text, origin: PERSONA, isExpanded: false },
-  })
+const monta = ($: Engine, surface: 'terminal' | 'desktop', text: string) =>
+  $.ui.mount({ plugin: 'oscura', surface, component: 'UserMessage', props: { text, origin: PERSONA, isExpanded: false } })
 
-  return (await ui.find({ type: 'Text' }))?.text
+const bolla = async ($: Engine, surface: 'terminal' | 'desktop', text: string) => {
+  const ui = await monta($, surface, text)
+  const testo = (await ui.find({ type: 'Text' }))?.text
+  await ui.unmount()
+
+  return testo
 }
 
 test('spento: i prompt passano intatti', async ($, on) => {
@@ -54,20 +57,21 @@ test('spento: i prompt passano intatti', async ($, on) => {
   expect(arrivati[0]?.context?.some(c => c.includes('<prompt_oscurato>')) ?? false).toBe(false)
 })
 
-test('/oscura acceso: in chat ▓▓▓, il testo vero va solo a Claude; spento: torna normale', async ($, on) => {
+test('acceso: in chat ▓▓▓ numerato, il testo vero va solo a Claude; spento: torna normale', async ($, on) => {
   const arrivati = inFondo(on)
   await avvia($)
 
   expect((await oscura($)).text).toContain('acceso')
   await invia($, 'scrivi un haiku sul caffè')
+  await invia($, 'e uno sul tè')
 
-  expect(arrivati[0]?.text).toBe(MASCHERA)
+  expect(arrivati.map(e => e.text)).toEqual([maschera(1), maschera(2)])
   expect(arrivati[0]?.context?.at(-1)).toContain('<prompt_oscurato>\nscrivi un haiku sul caffè\n</prompt_oscurato>')
 
   expect((await oscura($)).text).toContain('spento')
   await invia($, 'ciao')
 
-  expect(arrivati.map(e => e.text)).toEqual([MASCHERA, 'ciao'])
+  expect(arrivati.at(-1)?.text).toBe('ciao')
 })
 
 test('acceso: i comandi restano visibili, un prompt che inizia con un percorso no', async ($, on) => {
@@ -78,40 +82,90 @@ test('acceso: i comandi restano visibili, un prompt che inizia con un percorso n
   await invia($, '/model opus')
   await invia($, '/Users/me/app.ts perché crasha?')
 
-  expect(arrivati.map(e => e.text)).toEqual(['/help', '/model opus', MASCHERA])
+  expect(arrivati.map(e => e.text)).toEqual(['/help', '/model opus', maschera(1)])
   expect(await bolla($, 'desktop', '/model opus')).toBe('/model opus')
-  expect(await bolla($, 'desktop', '/Users/me/app.ts perché crasha?')).toBe(MASCHERA)
+  expect(await bolla($, 'desktop', '/Users/me/app.ts perché crasha?')).toBe(maschera(1))
 })
 
-test('acceso: i messaggi di altri plugin e quelli automatici non vengono toccati', async ($, on) => {
+test('acceso: i messaggi di altri plugin, quelli automatici e quelli già oscurati non vengono toccati', async ($, on) => {
   const arrivati = inFondo(on)
   await avvia($)
   await oscura($)
   await invia($, 'messaggio di un altro plugin', { kind: 'plugin', name: 'altro' })
   await invia($, 'task finito', { kind: 'task-notification' })
+  await invia($, maschera(7))
   await invia($, 'scritto per conto della persona', { kind: 'plugin', name: 'altro', asUser: true })
 
-  expect(arrivati.map(e => e.text)).toEqual(['messaggio di un altro plugin', 'task finito', MASCHERA])
+  expect(arrivati.map(e => e.text)).toEqual(['messaggio di un altro plugin', 'task finito', maschera(7), maschera(1)])
 })
 
-test('la bolla in chat mostra ▓▓▓ su terminale e app desktop', async ($, on) => {
+test('acceso: le bolle mostrano ▓▓▓, anche quelle scritte prima di accenderlo', async ($, on) => {
   inFondo(on)
   await avvia($)
 
   for (const surface of ['terminal', 'desktop'] as const) {
-    expect(await bolla($, surface, 'un segreto')).toBe('un segreto')
+    expect(await bolla($, surface, 'scritto prima')).toBe('scritto prima')
   }
 
   await oscura($)
   await invia($, 'un segreto')
 
   for (const surface of ['terminal', 'desktop'] as const) {
-    expect(await bolla($, surface, 'un segreto')).toBe(MASCHERA)
+    // Desktop: bolla dal testo digitato. Terminale: bolla dalla riga salvata.
+    expect(await bolla($, surface, 'un segreto')).toBe(maschera(1))
+    expect(await bolla($, surface, maschera(1))).toBe(maschera(1))
+    expect(await bolla($, surface, 'scritto prima')).toBe(MASCHERA)
     expect(await bolla($, surface, '/oscura')).toBe('/oscura')
   }
+})
 
-  // Spento, quello già oscurato resta oscurato.
+test('spento: ogni prompt oscurato torna al suo testo, anche se messo in coda mentre Claude lavorava', async ($, on) => {
+  inFondo(on)
+  await avvia($)
   await oscura($)
-  expect(await bolla($, 'desktop', 'un segreto')).toBe(MASCHERA)
-  expect(await bolla($, 'desktop', 'un messaggio nuovo')).toBe('un messaggio nuovo')
+  await invia($, 'segreto A')
+  await invia($, 'segreto B')
+  await oscura($)
+
+  // Desktop: la bolla ha il testo digitato.
+  expect(await bolla($, 'desktop', 'segreto A')).toBe('segreto A')
+  // Terminale: la riga salvata è la maschera numerata.
+  expect(await bolla($, 'terminal', maschera(2))).toBe('segreto B')
+  expect(await bolla($, 'terminal', maschera(1))).toBe('segreto A')
+  // Prompt messo in coda: la riga lo avvolge in altro testo, a volte insieme ad altri.
+  expect(await bolla($, 'terminal', `In coda: ${maschera(1)}\n${maschera(2)}`)).toBe('In coda: segreto A\nsegreto B')
+  // Una maschera che oscura non conosce resta com'è.
+  expect(await bolla($, 'terminal', maschera(99))).toBe(maschera(99))
+})
+
+test('un prompt scartato non sposta gli altri', async ($, on) => {
+  const arrivati = inFondo(on, ['scartami'])
+  await avvia($)
+  await oscura($)
+  await invia($, 'segreto A')
+  await invia($, 'scartami')
+  await invia($, 'segreto C')
+  await oscura($)
+
+  expect(arrivati.map(e => e.text)).toEqual([maschera(1), maschera(3)])
+  expect(await bolla($, 'terminal', maschera(1))).toBe('segreto A')
+  expect(await bolla($, 'terminal', maschera(2))).toBe(maschera(2))
+  expect(await bolla($, 'terminal', maschera(3))).toBe('segreto C')
+})
+
+test('la bolla si ridisegna da sola quando si accende e si spegne', async ($, on) => {
+  inFondo(on)
+  await avvia($)
+  await oscura($)
+  await invia($, 'un segreto')
+
+  const ui = await monta($, 'terminal', maschera(1))
+  expect((await ui.find({ type: 'Text' }))?.text).toBe(maschera(1))
+
+  await oscura($)
+  expect((await ui.find({ type: 'Text' }))?.text).toBe('un segreto')
+
+  await oscura($)
+  expect((await ui.find({ type: 'Text' }))?.text).toBe(maschera(1))
+  await ui.unmount()
 })
