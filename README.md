@@ -26,14 +26,17 @@ claude plugin marketplace add lucatozziGZ/oscura
 claude plugin install oscura@oscura
 ```
 
-Fatto. Il mod è attivo in tutte le **nuove** sessioni di Claude Code: nel terminale e nella tab Code dell'app desktop. Le sessioni già aperte non lo vedono: aprine una nuova.
+Fatto. Il mod è attivo in Claude Code, sia nel terminale sia nella tab Code dell'app desktop, in tutte le sessioni avviate **dopo** l'installazione. Una sessione che era già aperta mentre installavi non lo vede: aprine una nuova.
 
 ## Come si usa
 
-1. Apri una chat nuova e manda un messaggio qualsiasi, per esempio `ciao` (vedi [perché](#cosa-nasconde-e-cosa-no)).
-2. Scrivi **`/oscura`**. Compare `🕶️ Oscura acceso` e, nel terminale, `🕶️ oscura` nella status line.
-3. Scrivi i tuoi prompt normalmente: in chat diventano `▓▓▓▓▓▓▓▓ prompt oscurato ▓▓▓▓▓▓▓▓`.
-4. Riscrivi **`/oscura`** per spegnerlo. I messaggi già oscurati restano oscurati, e anche un messaggio nuovo identico a uno già oscurato.
+Funziona in qualsiasi chat, anche in una già avviata da tempo:
+
+1. Scrivi **`/oscura`**. Compare `🕶️ Oscura acceso` e, nel terminale, `🕶️ oscura` nella status line.
+2. Scrivi i tuoi prompt normalmente: in chat diventano `▓▓▓▓▓▓▓▓ prompt oscurato ▓▓▓▓▓▓▓▓`.
+3. Riscrivi **`/oscura`** per spegnerlo. I messaggi già oscurati restano oscurati, e anche un messaggio nuovo identico a uno già oscurato.
+
+**In una chat nuova, nell'app desktop:** prima di tutto manda un messaggio qualsiasi, per esempio `ciao`, perché il primo messaggio a Claude non si può oscurare (vedi [perché](#cosa-nasconde-e-cosa-no)). Poi `/oscura` e via. Nelle chat già avviate questo passaggio non serve.
 
 I comandi e le skill (`/qualcosa`) restano sempre visibili, **argomenti compresi**: non scriverci dentro niente da nascondere. Un prompt che inizia con un percorso, tipo `/Users/me/app.ts perché crasha?`, invece viene oscurato. `/oscura` vale per la chat in cui lo accendi: ogni chat nuova parte spenta.
 
@@ -82,7 +85,7 @@ claude plugin test .
 
 ## English
 
-**Show the output, hide the prompt.** A Claude Code mod: type `/oscura` and your messages show up in the chat as `▓▓▓ prompt oscurato ▓▓▓`, while Claude receives the real prompt as hidden context and is told never to repeat it. Install with `claude plugin marketplace add lucatozziGZ/oscura` and `claude plugin install oscura@oscura`, then open a new session. In the desktop app the first message of a new chat can't be hidden, so send a throwaway one first. It's a stage trick for demos and screen recordings, not a security tool: the prompt is visible while you type it and stays in your local session logs.
+**Show the output, hide the prompt.** A Claude Code mod: type `/oscura` and your messages show up in the chat as `▓▓▓ prompt oscurato ▓▓▓`, while Claude receives the real prompt as hidden context and is told never to repeat it. Install with `claude plugin marketplace add lucatozziGZ/oscura` and `claude plugin install oscura@oscura`, then start a new session. It works in any chat, including ones already in progress. Only in a brand-new chat in the desktop app can the first message not be hidden, so send a throwaway one first. It's a stage trick for demos and screen recordings, not a security tool: the prompt is visible while you type it and stays in your local session logs.
 
 ## Licenza
 
