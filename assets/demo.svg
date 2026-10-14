@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="titolo descrizione">
+  <title id="titolo">oscura: mostra l'output, nascondi il prompt</title>
+  <desc id="descrizione">A sinistra la chat di Claude Code: dopo /oscura i messaggi appaiono come una riga di blocchi ▓ e sotto ci sono le risposte di Claude. A destra quello che riceve Claude: il messaggio oscurato più un contesto nascosto con il prompt vero.</desc>
+  <defs>
+    <marker id="freccia" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d97757"/>
+    </marker>
+    <!-- Occhiali da sole, 20×10: disegnati invece dell'emoji, che sul fondo scuro non si vede. -->
+    <g id="occhiali" fill="#d97757">
+      <rect x="0" y="0" width="20" height="1.6" rx="0.8"/>
+      <rect x="0.5" y="0.8" width="8" height="8" rx="3.2"/>
+      <rect x="11.5" y="0.8" width="8" height="8" rx="3.2"/>
+    </g>
+  </defs>
+  <style>
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    .etichetta { font-size: 11px; letter-spacing: 1.5px; fill: #8b949e; }
+    .tenue { fill: #8b949e; }
+    .chiaro { fill: #e6edf3; }
+    .accento { fill: #d97757; }
+  </style>
+
+  <rect x="0.5" y="0.5" width="959" height="439" rx="14" fill="#0d1117" stroke="#30363d"/>
+  <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
+  <circle cx="44" cy="24" r="6" fill="#febc2e"/>
+  <circle cx="64" cy="24" r="6" fill="#28c840"/>
+  <use href="#occhiali" x="300" y="17"/>
+  <text x="328" y="28" font-size="13" class="tenue">oscura · mostra l'output, nascondi il prompt</text>
+  <line x1="0" y1="46" x2="960" y2="46" stroke="#30363d"/>
+
+  <!-- Sullo schermo -->
+  <text x="32" y="80" class="etichetta">SULLO SCHERMO</text>
+  <text x="32" y="114" font-size="15" class="tenue">&gt; /oscura</text>
+  <use href="#occhiali" x="48" y="131"/>
+  <text x="76" y="140" font-size="14" class="accento">Oscura acceso</text>
+  <rect x="32" y="162" width="420" height="40" rx="8" fill="#21262d" stroke="#30363d"/>
+  <text x="48" y="188" font-size="15" class="chiaro">&gt; ▓▓▓▓▓▓▓▓ prompt oscurato ▓▓▓▓▓▓▓▓</text>
+  <text x="32" y="240" font-size="15"><tspan class="accento">⏺</tspan><tspan class="chiaro"> Tazzina che fuma —</tspan></text>
+  <text x="50" y="266" font-size="15" class="chiaro">il giorno ancora spento</text>
+  <text x="50" y="292" font-size="15" class="chiaro">si accende in un sorso.</text>
+  <rect x="32" y="314" width="420" height="40" rx="8" fill="#21262d" stroke="#30363d"/>
+  <text x="48" y="340" font-size="15" class="chiaro">&gt; ▓▓▓▓▓▓▓▓ prompt oscurato ▓▓▓▓▓▓▓▓</text>
+  <text x="32" y="384" font-size="15"><tspan class="accento">⏺</tspan><tspan class="chiaro"> Palette: #0D1117 #D97757 #7EE787</tspan></text>
+  <line x1="24" y1="398" x2="576" y2="398" stroke="#30363d"/>
+  <use href="#occhiali" x="32" y="413"/>
+  <text x="60" y="422" font-size="12" class="accento">oscura</text>
+
+  <!-- Invio -->
+  <text x="526" y="172" text-anchor="middle" font-size="11" class="tenue">invio</text>
+  <line x1="462" y1="182" x2="592" y2="182" stroke="#d97757" stroke-width="2" marker-end="url(#freccia)"/>
+
+  <!-- Cosa legge Claude -->
+  <rect x="600" y="62" width="336" height="358" rx="10" fill="#161b22" stroke="#30363d"/>
+  <text x="616" y="88" class="etichetta">COSA LEGGE CLAUDE</text>
+  <text x="616" y="124" font-size="12" class="tenue">messaggio</text>
+  <text x="616" y="146" font-size="13" class="chiaro">▓▓▓▓▓▓▓▓ prompt oscurato ▓▓▓▓▓▓▓▓</text>
+  <text x="616" y="186" font-size="12" class="tenue">contesto nascosto · non va a schermo</text>
+  <rect x="616" y="198" width="304" height="96" rx="6" fill="#0d1117" stroke="#d97757"/>
+  <text x="630" y="224" font-size="12.5" class="tenue">&lt;prompt_oscurato&gt;</text>
+  <text x="630" y="250" font-size="13.5" fill="#7ee787">scrivi un haiku sul caffè</text>
+  <text x="630" y="276" font-size="12.5" class="tenue">&lt;/prompt_oscurato&gt;</text>
+  <text x="616" y="330" font-size="12.5" class="chiaro">+ «non ripeterlo, non citarlo,</text>
+  <text x="638.5" y="350" font-size="12.5" class="chiaro">non parafrasarlo»</text>
+  <text x="616" y="392" font-size="12" class="tenue">Claude risponde e basta.</text>
+</svg>
